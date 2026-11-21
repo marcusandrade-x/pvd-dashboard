@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# pvd-dashboard
-Dashboard interativo de inadimplência em empréstimos consignados para a máteria de Processamento e Visualização de Dados. Desenvolvido com Google Apps Script, Google Sheets e Google Charts, incluindo análises temporais, comparações regionais e filtros interativos.
-=======
-# Observatório da Inadimplência em Empréstimos Consignados
+# Observação da Inadimplência em Empréstimos Consignados
 
 Dashboard interativo desenvolvido para a máteria de Processamento e Visualização de Dados. Desenvolvido com **Google Apps Script, Google Sheets e Google Charts** para explorar a inadimplência em contratos de empréstimos consignados. O painel apresenta a evolução dos contratos por mês de contratação, diferenças entre segmentos e associações entre características financeiras e a inadimplência.
 
@@ -82,4 +78,3 @@ No Apps Script, os dados são filtrados e agrupados por mês de contratação, �
 ## Autoria
 
 Desenvolvido por Marcus Vinicius Andrade Silva, Mauricio Alonzo e Eduardo da Silva Ribeiro como trabalho acadêmico para a matéria de Processamento e Visualização de Dados.
->>>>>>> bd59528 (add: códigos e dados)
