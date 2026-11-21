@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Observatório da Inadimplência | Consignado</title>
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    :root {
+      --fundo: #f4f7fb; --superficie: #ffffff; --texto: #18273c;
+      --secundario: #617188; --borda: #dfe6f0;
+      --azul: #466fce; --laranja: #d98335; --teal: #278b98;
+      --sombra: 0 8px 25px rgba(20, 44, 80, .05);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           color: var(--texto); background: var(--fundo); }
+    .container { max-width: 1360px; padding: 0 22px; margin: 0 auto; }
+    header { color: white; background: linear-gradient(120deg, #142948, #244c80); padding: 36px 0 32px; }
+    .eyebrow { letter-spacing: .14em; text-transform: uppercase; font-size: 11px; font-weight: 800;
+               color: #a6c5ff; margin: 0 0 9px; }
+    h1 { margin: 0 0 9px; font-size: clamp(26px, 3vw, 36px); line-height: 1.15; }
+    header p { color: #c9d8ef; max-width: 900px; margin: 0; }
+    main { padding: 25px 0 44px; }
+    .card { background: var(--superficie); border: 1px solid var(--borda); border-radius: 16px;
+            box-shadow: var(--sombra); min-width: 0; }
+    .filtros { padding: 20px 23px; margin-bottom: 19px; }
+    .cabecalho-filtros { display: flex; justify-content: space-between; gap: 12px; align-items: center;
+                         flex-wrap: wrap; margin-bottom: 13px; }
+    .cabecalho-filtros h2 { font-size: 16px; margin: 0; }
+    .campos { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 12px; }
+    .campo label { display:block; font-size: 12px; font-weight: 700; color: var(--secundario); margin: 0 0 6px; }
+    .campo select, .campo input { height: 43px; width: 100%; border: 1px solid #cfd9e7; border-radius: 9px;
+                                  color: var(--texto); background: white; padding: 0 10px; font: inherit; }
+    /* Exibe a data digitada sempre em DD/MM/AAAA, independentemente do navegador. */
+    .campo-data { display: flex; align-items: center; gap: 6px; }
+    .campo-data input[type="text"] { flex: 1 1 auto; min-width: 0; padding: 0 8px; font-size: 13px; }
+    .campo-data input[type="date"] { width: 40px; flex: 0 0 40px; padding: 0 8px;
+                                        font-size: 0; color: transparent; cursor: pointer; overflow: hidden; }
+    .campo-data input[type="date"]::-webkit-datetime-edit { display: none; }
+    .campo-data input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; margin: 0; }
+    .ajuda-datas { color: var(--secundario); font-size: 11px; margin: 9px 0 0; }
+    select:focus, input:focus, button:focus-visible { outline: 3px solid #8ab7ff; outline-offset: 2px; }
+    .botao { background: #edf2fa; color: #224a7d; border: 1px solid #cbd7e8; border-radius: 9px;
+             padding: 9px 15px; cursor: pointer; font-weight: 750; }
+    .botao:hover { background: #dfeaf8; }
+    .status { min-height: 25px; font-size: 13px; color: var(--secundario); margin-bottom: 14px; }
+    .status.erro { color: #a3292e; font-weight: 700; }
+    .status.alerta { color: #955400; font-weight: 700; }
+    .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 15px; margin-bottom: 27px; }
+    .kpi { padding: 20px 21px; border-top: 4px solid var(--azul); }
+    .kpi.laranja { border-top-color: var(--laranja); }
+    .kpi.teal { border-top-color: var(--teal); }
+    .kpi .label { display: block; color: var(--secundario); font-size: 12px; font-weight: 750; min-height: 38px; }
+    .kpi .valor { display: block; font-size: clamp(22px, 2.5vw, 30px); line-height: 1.2;
+                  font-weight: 800; margin: 5px 0; font-variant-numeric: tabular-nums; }
+    .kpi .legenda { font-size: 12px; color: var(--secundario); }
+    .secao { margin: 27px 0 13px; }
+    .secao h2 { font-size: 20px; margin: 0 0 4px; }
+    .secao p { color: var(--secundario); margin: 0; font-size: 13px; }
+    .graficos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+    .grafico { padding: 16px 15px 8px; overflow: hidden; }
+    .grafico.largo { grid-column: 1/-1; }
+    .grafico h3 { margin: 1px 6px 1px; font-size: 15px; }
+    .grafico p { margin: 0 6px 8px; color: var(--secundario); font-size: 12px; }
+    .chart { width: 100%; min-height: 320px; }
+    #grafico-uf { min-height: 720px; }
+    .tabela-card { padding: 20px; margin-top: 16px; }
+    .tabela-card h2 { margin: 0 0 4px; font-size: 18px; }
+    .tabela-card p { color: var(--secundario); font-size: 13px; margin: 0 0 15px; }
+    .rolagem { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px; }
+    th { text-align: left; background: #f0f4fa; color: #354c6a; white-space: nowrap; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--borda); }
+    th:not(:first-child), td:not(:first-child) { text-align: right; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #f8fbff; }
+    .observacao { font-size: 12px; line-height: 1.6; color: var(--secundario);
+                  margin-top: 20px; padding: 14px 17px; border-left: 3px solid #8395af; }
+    footer { text-align: center; font-size: 12px; color: var(--secundario); padding: 0 20px 30px; }
+    @media (max-width: 1050px) {
+      .campos { grid-template-columns: repeat(3, minmax(150px,1fr)); }
+      .kpis { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    @media (max-width: 700px) {
+      .container { padding: 0 14px; }
+      header { padding: 27px 0; }
+      .campos { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .kpis, .graficos { grid-template-columns: 1fr; }
+      .grafico.largo { grid-column: auto; }
+      .grafico { padding: 14px 8px 6px; }
+      .kpi { padding: 17px; }
+      .filtros { padding: 17px; }
+      #grafico-uf { min-height: 720px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="eyebrow">Painel analítico · Empréstimos consignados</div>
+      <h1>Observatório da Inadimplência</h1>
+      <p>Evolução por mês de contratação, comparação entre segmentos e relações com características financeiras dos contratos.</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card filtros" aria-label="Filtros interativos">
+      <div class="cabecalho-filtros">
+        <h2>Explorar os dados</h2>
+        <button class="botao" id="limpar" type="button">Limpar filtros</button>
+      </div>
+      <div class="campos">
+        <div class="campo"><label for="orgao">Órgão pagador</label><select id="orgao"><option value="todos">Todos os órgãos</option></select></div>
+        <div class="campo"><label for="canal">Canal de contratação</label><select id="canal"><option value="todos">Todos os canais</option></select></div>
+        <div class="campo"><label for="uf">UF</label><select id="uf"><option value="todos">Todas as UFs</option></select></div>
+        <div class="campo"><label for="inicio">Data de contratação — início</label>
+          <div class="campo-data">
+            <input id="inicio" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa"
+                   aria-label="Data inicial no formato dia/mês/ano" autocomplete="off">
+            <input id="inicio-cal" type="date" lang="pt-BR" aria-label="Escolher data inicial no calendário"
+                   title="Escolher data inicial pelo calendário">
+          </div>
+        </div>
+        <div class="campo"><label for="fim">Data de contratação — fim</label>
+          <div class="campo-data">
+            <input id="fim" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa"
+                   aria-label="Data final no formato dia/mês/ano" autocomplete="off">
+            <input id="fim-cal" type="date" lang="pt-BR" aria-label="Escolher data final no calendário"
+                   title="Escolher data final pelo calendário">
+          </div>
+        </div>
+      </div>
+      <p class="ajuda-datas">Datas exibidas em dd/mm/aaaa. Digite a data ou use o botão de calendário.</p>
+    </section>
+
+    <div class="status" id="status" role="status" aria-live="polite">Carregando dados...</div>
+
+    <section class="kpis" aria-label="Indicadores principais">
+      <div class="card kpi"><span class="label">Contratos analisados</span><strong class="valor" id="k-contratos">—</strong><span class="legenda">Quantidade após filtros</span></div>
+      <div class="card kpi laranja"><span class="label">Taxa de inadimplência</span><strong class="valor" id="k-taxa">—</strong><span class="legenda" id="k-inadimplentes">Contratos sinalizados como inadimplentes</span></div>
+      <div class="card kpi"><span class="label">Volume total contratado</span><strong class="valor" id="k-volume">—</strong><span class="legenda">Soma do valor original dos empréstimos</span></div>
+      <div class="card kpi teal"><span class="label">Valor contratado em contratos inadimplentes</span><strong class="valor" id="k-valor-inad">—</strong><span class="legenda">Não representa saldo vencido ou dívida em aberto</span></div>
+    </section>
+
+    <section class="secao">
+      <h2>01 · Evolução ao longo do tempo</h2>
+      <p>Como o volume contratado e a proporção de contratos inadimplentes variam conforme o mês de contratação?</p>
+    </section>
+    <div class="graficos">
+      <article class="card grafico"><h3>Volume concedido por mês</h3><p>Valor original contratado, em R$ milhões</p><div class="chart" id="grafico-volume"></div></article>
+      <article class="card grafico"><h3>Taxa de inadimplência por mês</h3><p>Percentual de contratos inadimplentes entre os contratados naquele mês</p><div class="chart" id="grafico-mensal"></div></article>
+    </div>
+
+    <section class="secao">
+      <h2>02 · Comparação entre segmentos</h2>
+      <p>Como a taxa de inadimplência varia entre órgãos pagadores, canais e unidades federativas?</p>
+    </section>
+    <div class="graficos">
+      <article class="card grafico"><h3>Inadimplência por órgão pagador</h3><p>Taxa de inadimplência (%) por órgão</p><div class="chart" id="grafico-orgao"></div></article>
+      <article class="card grafico"><h3>Inadimplência por canal</h3><p>Taxa de inadimplência (%) por canal de contratação</p><div class="chart" id="grafico-canal"></div></article>
+      <article class="card grafico largo"><h3>Inadimplência por UF</h3><p>Ordenado da maior para a menor taxa de inadimplência. Passe o mouse para ver a quantidade de contratos.</p><div class="chart" id="grafico-uf"></div></article>
+    </div>
+
+    <section class="secao">
+      <h2>03 · Relações com características financeiras</h2>
+      <p>Como a taxa de inadimplência se distribui entre faixas de comprometimento de renda, score de crédito e juros?</p>
+    </section>
+    <div class="graficos">
+      <article class="card grafico"><h3>Comprometimento de renda × inadimplência</h3><p>Faixas de 5 pontos percentuais; cada ponto é uma faixa de contratos</p><div class="chart" id="grafico-comp"></div></article>
+      <article class="card grafico"><h3>Score de crédito × inadimplência</h3><p>Faixas de 100 pontos de score; cada ponto é uma faixa de contratos</p><div class="chart" id="grafico-score"></div></article>
+      <article class="card grafico largo"><h3>Juros mensais × inadimplência</h3><p>Taxa de inadimplência por faixa de taxa de juros contratual (%, ao mês)</p><div class="chart" id="grafico-juros"></div></article>
+    </div>
+
+    <section class="card tabela-card" aria-label="Tabela de estatísticas por órgão pagador">
+      <h2>Estatísticas agregadas por órgão pagador</h2>
+      <p>Todos os valores da tabela respeitam os filtros selecionados. Taxas de juros em % ao mês.</p>
+      <div class="rolagem">
+        <table>
+          <thead><tr><th>Órgão pagador</th><th>Contratos</th><th>Inadimplentes</th><th>Taxa (%)</th><th>Volume (R$)</th><th>Valor médio (R$)</th><th>Score médio</th><th>Juros médios (% a.m.)</th></tr></thead>
+          <tbody id="corpo-tabela"><tr><td colspan="8">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside class="observacao">
+      <strong>Como interpretar:</strong> inadimplência = contratos com <code>inadimplente = 1</code> / total de contratos do grupo × 100.
+      Os dados não incluem a data de início da inadimplência; portanto a evolução mensal é por <em>mês de contratação</em>.
+      As associações exibidas nos gráficos não demonstram causalidade. O valor de contratos inadimplentes é a soma
+      dos valores originalmente emprestados, não o saldo vencido.
+    </aside>
+  </main>
+  <footer>Projeto acadêmico · Fonte: inadimplencia_consignado.csv · Construído com Google Apps Script e Google Charts</footer>
+
+  <script>
+    'use strict';
+    const COR = { volume: '#466fce', taxa: '#d98335', relacao: '#278b98' };
+    const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+    const INTEIRO = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
+    const NUMERO = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const PERCENTUAL = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const $ = (id) => document.getElementById(id);
+
+    let chartsReady = false;
+    let ultimoResultado = null;
+    let limites = null;
+    let reqAtual = 0;
+    let timer = null;
+
+    // Charts precisam ser carregados antes da primeira renderização.
+    google.charts.load('current', { packages: ['corechart'], language: 'pt-BR' });
+    google.charts.setOnLoadCallback(function() {
+      chartsReady = true;
+      if (ultimoResultado) desenharGraficos(ultimoResultado);
+    });
+
+    function moedaCurta(valor) {
+      if (Math.abs(valor) >= 1e9) return 'R$ ' + NUMERO.format(valor / 1e9) + ' bi';
+      if (Math.abs(valor) >= 1e6) return 'R$ ' + NUMERO.format(valor / 1e6) + ' mi';
+      return BRL.format(valor);
+    }
+    function pct(n) { return PERCENTUAL.format(n) + '%'; }
+    function rotuloMes(mes) { return mes.substring(5, 7) + '/' + mes.substring(0, 4); }
+    function escapeHtml(texto) {
+      return String(texto).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    }
+    function status(texto, erro, alerta) {
+      $('status').textContent = texto;
+      $('status').classList.toggle('erro', !!erro);
+      $('status').classList.toggle('alerta', !!alerta);
+    }
+    function isoParaBR(iso) {
+      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
+      return iso.substring(8, 10) + '/' + iso.substring(5, 7) + '/' + iso.substring(0, 4);
+    }
+    function brParaISO(texto) {
+      const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(texto).trim());
+      if (!m) return '';
+      const iso = m[3] + '-' + m[2] + '-' + m[1];
+      const data = new Date(iso + 'T00:00:00Z');
+      return !isNaN(data.getTime()) && data.toISOString().substring(0, 10) === iso ? iso : '';
+    }
+    function sincronizarCalendario(id) {
+      $(id + '-cal').value = brParaISO($(id).value);
+    }
+    function configurarOpcoes(id, itens, textoTodos) {
+      const sel = $(id);
+      sel.innerHTML = '';
+      const todos = document.createElement('option');
+      todos.value = 'todos'; todos.textContent = textoTodos; sel.appendChild(todos);
+      itens.forEach(item => {
+        const o = document.createElement('option');
+        o.value = item.id; o.textContent = item.nome; sel.appendChild(o);
+      });
+    }
+    function inicializarFiltros(meta) {
+      limites = meta;
+      configurarOpcoes('orgao', meta.orgaos, 'Todos os órgãos');
+      configurarOpcoes('canal', meta.canais, 'Todos os canais');
+      configurarOpcoes('uf', meta.ufs, 'Todas as UFs');
+      ['inicio-cal', 'fim-cal'].forEach(id => {
+        $(id).min = meta.inicio;
+        $(id).max = meta.fim;
+      });
+      $('inicio').value = isoParaBR(meta.inicio);
+      $('fim').value = isoParaBR(meta.fim);
+      sincronizarCalendario('inicio');
+      sincronizarCalendario('fim');
+    }
+    function filtrosAtuais() {
+      const textoInicio = $('inicio').value.trim();
+      const textoFim = $('fim').value.trim();
+      const inicio = textoInicio ? brParaISO(textoInicio) : '';
+      const fim = textoFim ? brParaISO(textoFim) : '';
+      if ((textoInicio && !inicio) || (textoFim && !fim)) {
+        throw new Error('Informe datas válidas no formato dd/mm/aaaa.');
+      }
+      if (inicio && fim && inicio > fim) {
+        throw new Error('A data inicial não pode ser posterior à data final.');
+      }
+      if (limites && ((inicio && inicio < limites.inicio) || (fim && fim > limites.fim))) {
+        throw new Error('O intervalo deve estar entre ' + isoParaBR(limites.inicio) +
+                        ' e ' + isoParaBR(limites.fim) + '.');
+      }
+      return {
+        orgao: $('orgao').value,
+        canal: $('canal').value,
+        uf: $('uf').value,
+        inicio: inicio,
+        fim: fim
+      };
+    }
+    function buscarDados() {
+      let f;
+      try { f = filtrosAtuais(); }
+      catch (erro) { ++reqAtual; status(erro.message, true); return; }
+      const req = ++reqAtual;
+      status('Atualizando os gráficos e indicadores...');
+      google.script.run
+        .withSuccessHandler(function(dados) {
+          if (req !== reqAtual) return; // Ignorar resposta antiga de outro filtro.
+          if (!limites) inicializarFiltros(dados.meta);
+          ultimoResultado = dados;
+          renderizarIndicadores(dados.indicadores);
+          renderizarTabela(dados.tabela);
+          if (chartsReady) desenharGraficos(dados);
+          const total = dados.indicadores.contratos;
+          const filtrosAtivos = [
+            f.orgao !== 'todos' ? 'órgão: ' + f.orgao : '',
+            f.canal !== 'todos' ? 'canal: ' + f.canal : '',
+            f.uf !== 'todos' ? 'UF: ' + f.uf : '',
+            f.inicio || f.fim ? 'período: ' + (f.inicio ? isoParaBR(f.inicio) : 'início') +
+              ' a ' + (f.fim ? isoParaBR(f.fim) : 'fim') : ''
+          ].filter(Boolean);
+          const resumo = INTEIRO.format(total) + ' contratos selecionados · período disponível: ' +
+            isoParaBR(limites.inicio) + ' a ' + isoParaBR(limites.fim) +
+            (filtrosAtivos.length ? ' · Filtros: ' + filtrosAtivos.join(' · ') : '');
+          status(total > 0 && total < 30
+            ? resumo + ' · Atenção: amostra com menos de 30 contratos; interprete as taxas com cautela.'
+            : resumo, false, total > 0 && total < 30);
+        })
+        .withFailureHandler(function(erro) {
+          if (req !== reqAtual) return;
+          status('Erro ao consultar os dados: ' + (erro && erro.message ? erro.message : String(erro)), true);
+        })
+        .getDashboardData(f);
+    }
+    function agendarBusca() {
+      clearTimeout(timer);
+      timer = setTimeout(buscarDados, 250);
+    }
+    function renderizarIndicadores(k) {
+      $('k-contratos').textContent = INTEIRO.format(k.contratos);
+      $('k-taxa').textContent = k.contratos ? pct(k.taxaInadimplencia) : '—';
+      $('k-inadimplentes').textContent = INTEIRO.format(k.inadimplentes) + ' contratos inadimplentes';
+      $('k-volume').textContent = moedaCurta(k.volumeContratado);
+      $('k-valor-inad').textContent = moedaCurta(k.valorAssociadoInadimplencia);
+    }
+    function renderizarTabela(linhas) {
+      const corpo = $('corpo-tabela');
+      if (!linhas.length) {
+        corpo.innerHTML = '<tr><td colspan="8">Nenhum contrato para os filtros selecionados.</td></tr>';
+        return;
+      }
+      corpo.innerHTML = linhas.map(g => '<tr>' +
+        '<td>' + escapeHtml(g.categoria) + '</td>' +
+        '<td>' + INTEIRO.format(g.contratos) + '</td>' +
+        '<td>' + INTEIRO.format(g.inadimplentes) + '</td>' +
+        '<td>' + pct(g.taxa) + '</td>' +
+        '<td>' + BRL.format(g.valorTotal) + '</td>' +
+        '<td>' + BRL.format(g.valorMedio) + '</td>' +
+        '<td>' + NUMERO.format(g.scoreMedio) + '</td>' +
+        '<td>' + pct(g.jurosMedio) + '</td>' +
+      '</tr>').join('');
+    }
+
+    function opcoes(tipo, cor, extra) {
+      const base = {
+        backgroundColor: 'transparent',
+        fontName: 'Arial', fontSize: 12,
+        legend: { position: 'none' },
+        colors: [cor],
+        chartArea: { left: tipo === 'bar' ? 100 : 75, top: 22, width: tipo === 'bar' ? '73%' : '79%', height: '67%' },
+        tooltip: { textStyle: { fontSize: 12 } },
+        hAxis: { textStyle: { color: '#627188', fontSize: 11 }, titleTextStyle: { color: '#43556b' },
+                 gridlines: { color: '#eff2f7' } },
+        vAxis: { textStyle: { color: '#627188', fontSize: 11 }, titleTextStyle: { color: '#43556b' },
+                 gridlines: { color: '#eff2f7' }, minValue: 0 },
+        animation: { startup: false },
+        height: 320
+      };
+      // Object.assign não faz merge profundo: cada gráfico informa os eixos completos.
+      return Object.assign(base, extra || {});
+    }
+    function renderizarGrafico(id, tipo, linhas, options) {
+      const el = $(id);
+      if (linhas.length <= 1) {
+        el.innerHTML = '<p style="padding:35px 16px;color:#617188;text-align:center">Sem dados para os filtros selecionados.</p>';
+        return;
+      }
+      const tabela = google.visualization.arrayToDataTable(linhas);
+      const Classe = google.visualization[tipo];
+      const chart = new Classe(el);
+      chart.draw(tabela, options);
+    }
+    function tooltipPorGrupo(nome, taxa, n) {
+      return nome + '\nTaxa: ' + pct(taxa) + '\nContratos: ' + INTEIRO.format(n) +
+             (n < 30 ? '\n⚠ Amostra pequena (< 30 contratos)' : '');
+    }
+    function graficoTaxaPorCategoria(id, tipo, grupos, cor, horizontal) {
+      const linhas = [['Categoria', 'Taxa de inadimplência (%)', { type: 'string', role: 'tooltip' }]];
+      grupos.forEach(g => linhas.push([g.nome, g.taxa, tooltipPorGrupo(g.nome, g.taxa, g.n)]));
+      const eixoPercentual = { title: 'Taxa de inadimplência (%)', minValue: 0, format: '#,##0.0',
+                               textStyle: { color: '#627188' }, gridlines: { color: '#eff2f7' } };
+      const eixoCategoria = { textStyle: { color: '#627188' }, titleTextStyle: { color: '#43556b' } };
+      renderizarGrafico(id, tipo, linhas, opcoes(horizontal ? 'bar' : 'col', cor, {
+        hAxis: horizontal ? eixoPercentual : eixoCategoria,
+        vAxis: horizontal ? eixoCategoria : eixoPercentual,
+        height: id === 'grafico-uf' ? Math.max(480, grupos.length * 28 + 65) : 320,
+        chartArea: { left: horizontal ? (id === 'grafico-uf' ? 63 : 112) : 75, top: 25,
+                     width: horizontal ? '78%' : '78%', height: id === 'grafico-uf' ? '89%' : '68%' }
+      }));
+    }
+    function graficoDispersao(id, grupos, eixoX, cor) {
+      const linhas = [[eixoX, 'Taxa de inadimplência (%)', { type: 'string', role: 'tooltip' }]];
+      grupos.forEach(g => linhas.push([g.x, g.taxa, tooltipPorGrupo('Faixa ' + g.faixa, g.taxa, g.n)]));
+      renderizarGrafico(id, 'ScatterChart', linhas, opcoes('scatter', cor, {
+        pointSize: 8, dataOpacity: .87,
+        hAxis: { title: eixoX, minValue: 0, textStyle: { color: '#627188' }, gridlines: { color: '#eff2f7' } },
+        vAxis: { title: 'Taxa de inadimplência (%)', minValue: 0,
+                 textStyle: { color: '#627188' }, gridlines: { color: '#eff2f7' } }
+      }));
+    }
+    function desenharGraficos(dados) {
+      const volume = [['Mês de contratação', 'Volume (R$ milhões)', { type: 'string', role: 'tooltip' }]];
+      const mensal = [['Mês de contratação', 'Taxa de inadimplência (%)', { type: 'string', role: 'tooltip' }]];
+      dados.mensal.forEach(g => {
+        const nome = rotuloMes(g.mes);
+        volume.push([nome, g.volume / 1e6, nome + '\nVolume: ' + BRL.format(g.volume) + '\nContratos: ' + INTEIRO.format(g.contratos)]);
+        mensal.push([nome, g.taxa, tooltipPorGrupo(nome, g.taxa, g.contratos)]);
+      });
+      renderizarGrafico('grafico-volume', 'ColumnChart', volume, opcoes('col', COR.volume, {
+        hAxis: { title: 'Mês/ano de contratação', slantedText: true, slantedTextAngle: 45,
+                 showTextEvery: 3, textStyle: { color: '#627188', fontSize: 10 } },
+        vAxis: { title: 'Volume (R$ milhões)', minValue: 0,
+                 textStyle: { color: '#627188' }, gridlines: { color: '#eff2f7' } }
+      }));
+      renderizarGrafico('grafico-mensal', 'LineChart', mensal, opcoes('line', COR.taxa, {
+        pointSize: 4, lineWidth: 2.5,
+        hAxis: { title: 'Mês/ano de contratação', slantedText: true, slantedTextAngle: 45,
+                 showTextEvery: 3, textStyle: { color: '#627188', fontSize: 10 } },
+        vAxis: { title: 'Taxa de inadimplência (%)', minValue: 0,
+                 textStyle: { color: '#627188' }, gridlines: { color: '#eff2f7' } }
+      }));
+      graficoTaxaPorCategoria('grafico-orgao', 'BarChart', dados.porOrgao, COR.taxa, true);
+      graficoTaxaPorCategoria('grafico-canal', 'ColumnChart', dados.porCanal, COR.taxa, false);
+      const ufOrdenadas = dados.porUf.slice().sort((a, b) =>
+        b.taxa - a.taxa || b.n - a.n || a.nome.localeCompare(b.nome, 'pt-BR'));
+      graficoTaxaPorCategoria('grafico-uf', 'BarChart', ufOrdenadas, COR.taxa, true);
+      graficoDispersao('grafico-comp', dados.comprometimento, 'Comprometimento de renda (%)', COR.relacao);
+      graficoDispersao('grafico-score', dados.score, 'Score de crédito (pontos)', COR.relacao);
+      const juros = [['Taxa de juros (% a.m.)', 'Taxa de inadimplência (%)', { type: 'string', role: 'tooltip' }]];
+      dados.juros.forEach(g => juros.push([g.faixa, g.taxa, tooltipPorGrupo('Juros ' + g.faixa, g.taxa, g.n)]));
+      renderizarGrafico('grafico-juros', 'ColumnChart', juros, opcoes('col', COR.relacao, {
+        hAxis: { title: 'Faixa de juros contratados (% a.m.)',
+                 textStyle: { color: '#627188', fontSize: 11 } },
+        vAxis: { title: 'Taxa de inadimplência (%)', minValue: 0,
+                 textStyle: { color: '#627188' }, gridlines: { color: '#eff2f7' } }
+      }));
+    }
+
+    ['orgao', 'canal', 'uf'].forEach(id => $(id).addEventListener('change', agendarBusca));
+    ['inicio', 'fim'].forEach(id => {
+      $(id).addEventListener('change', function() {
+        sincronizarCalendario(id);
+        agendarBusca();
+      });
+      $(id + '-cal').addEventListener('change', function() {
+        $(id).value = isoParaBR($(id + '-cal').value);
+        agendarBusca();
+      });
+    });
+    $('limpar').addEventListener('click', function() {
+      if (!limites) return;
+      ['orgao', 'canal', 'uf'].forEach(id => { $(id).value = 'todos'; });
+      $('inicio').value = isoParaBR(limites.inicio);
+      $('fim').value = isoParaBR(limites.fim);
+      sincronizarCalendario('inicio');
+      sincronizarCalendario('fim');
+      buscarDados();
+    });
+    window.addEventListener('resize', function() {
+      clearTimeout(timer);
+      timer = setTimeout(function() { if (chartsReady && ultimoResultado) desenharGraficos(ultimoResultado); }, 250);
+    });
+    buscarDados();
+  </script>
+</body>
+</html>
